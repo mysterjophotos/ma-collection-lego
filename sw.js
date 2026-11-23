@@ -1,5 +1,5 @@
 /* Service worker : l'app s'ouvre même sans réseau (dernière version en cache). */
-const V = 'lego-shell-20261123214902', IMG = 'lego-img-1';
+const V = 'lego-shell-20261123215056', IMG = 'lego-img-1';
 const SHELL = ['./', 'index.html', 'standalone.js', 'calc.js', 'manifest.webmanifest', 'icons/icon-192.png', 'icons/icon-512.png', 'xlsx.full.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V && k !== IMG).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

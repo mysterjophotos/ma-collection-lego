@@ -1770,17 +1770,32 @@ function openPanel(title, body, foot){
 /* Figurines : liste par set (figs/index.json) et images regroupées en quelques fichiers (figs/img-N.json). */
 const FIG_CHUNKS = 8;
 let FIGS = null, FIGVAL = null, FIGEXTRA = null, figsLoading = null; const FIGIMG = {}, figChunkLoading = {};
-function loadFigs(){ if (FIGS || figsLoading) return figsLoading; fetch('figs/values.json').then(r => r.ok ? r.json() : null).then(j => { FIGVAL = j; if (state.sheetSet) refreshSheet(); else if (['figurines', 'rentabilite'].includes(state.view)) render(); }).catch(() => {});
-  fetch('figs/extra.json').then(r => r.ok ? r.json() : null).then(j => { if (j && j.ids) { FIGEXTRA = new Set(j.ids); if (state.sheetSet) refreshSheet(); else if (state.view === 'figurines') render(); } }).catch(() => {});
-  figsLoading = fetch('figs/index.json').then(r => r.ok ? r.json() : {}).then(j => { FIGS = j || {}; if (state.sheetSet) refreshSheet(); if (state.view === 'figurines') render(); }).catch(() => { FIGS = {}; }); return figsLoading; }
+// Les trois fichiers de figurines arrivent ensemble : un seul rafraîchissement de l'écran (évite le clignotement).
+function loadFigs(){
+  if (FIGS || figsLoading) return figsLoading;
+  const get = (u, d) => fetch(u).then(r => r.ok ? r.json() : d).catch(() => d);
+  figsLoading = Promise.all([get('figs/index.json', {}), get('figs/values.json', null), get('figs/extra.json', null)]).then(([ix, val, ex]) => {
+    FIGVAL = val; if (ex && ex.ids) FIGEXTRA = new Set(ex.ids); FIGS = ix || {};
+    if (state.sheetSet) refreshSheet(); else if (['figurines', 'rentabilite'].includes(state.view)) render();
+  });
+  return figsLoading;
+}
+// Une image de figurine arrivée après coup est posée directement à sa place, sans redessiner la page.
+function patchFigImgs(){
+  document.querySelectorAll('[data-fig]').forEach(el => {
+    if (el.querySelector('img')) return;
+    const id = el.dataset.fig, src = FIGEXTRA && FIGEXTRA.has(id) ? 'figs/m/' + encodeURIComponent(id) + '.webp' : FIGIMG[id];
+    if (src) { const im = new Image(); im.alt = ''; im.src = src; el.replaceChildren(im); }
+  });
+}
 function figsOf(ref){ if (!FIGS) { loadFigs(); return null; } return FIGS[ref] || null; }
 function figChunk(id){ let h = 0; for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h % FIG_CHUNKS; }
 function figImg(id, size){
   if (FIGEXTRA && FIGEXTRA.has(id)) return `<span class="thumb ${size || ''}"><img src="figs/m/${encodeURIComponent(id)}.webp" alt="" loading="lazy"></span>`;
   if (FIGIMG[id]) return `<span class="thumb ${size || ''}"><img src="${FIGIMG[id]}" alt=""></span>`;
   const k = figChunk(id);
-  if (!figChunkLoading[k]) figChunkLoading[k] = fetch('figs/img-' + k + '.json').then(r => r.ok ? r.json() : {}).then(j => { Object.assign(FIGIMG, j); if (state.sheetSet) refreshSheet(); else if (state.view === 'figurines') render(); }).catch(() => {});
-  return `<span class="thumb ${size || ''}">${PH}</span>`;
+  if (!figChunkLoading[k]) figChunkLoading[k] = fetch('figs/img-' + k + '.json').then(r => r.ok ? r.json() : {}).then(j => { Object.assign(FIGIMG, j); patchFigImgs(); }).catch(() => {});
+  return `<span class="thumb ${size || ''}" data-fig="${esc(id)}">${PH}</span>`;
 }
 function openSheet(id, tab){
   state.sheetTab = tab || (state.sheetSet ? state.sheetTab : 'apercu') || 'apercu'; state.sheetSet = id;
