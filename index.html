@@ -1488,26 +1488,34 @@ function figValue(id){ const p = figPrice(id); return p ? p.value : null; }
 function allFigs(){
   if (!FIGS) { loadFigs(); return null; }
   const map = new Map();
-  state.calc.ownedRows.forEach(x => (FIGS[x.s.ref] || []).forEach(([id, name]) => { let o = map.get(id); if (!o) map.set(id, o = { id, name, n: 0, rows: [] }); o.n++; o.rows.push(x); }));
+  state.calc.ownedRows.forEach(x => { const k = figPack(x.s); (FIGS[x.s.ref] || []).forEach(([id, name]) => { let o = map.get(id); if (!o) map.set(id, o = { id, name, n: 0, rows: [], k: { set: 0, indiv: 0, libre: 0 } }); o.n++; o.k[k]++; o.rows.push(x); }); });
   return [...map.values()];
 }
+// Conditionnement d'une figurine selon le set qui la contient :
+// série de minifigurines (boîtes ou sachets individuels) → scellée individuellement ; set monté → libre ; sinon → dans un set scellé.
+function figPack(s){ if (isCMF(s.ref) || /minifig/.test(fold(s.serie || ''))) return s.etat === 'Monté' ? 'libre' : 'indiv'; return s.etat === 'Monté' ? 'libre' : 'set'; }
+const FIG_KINDS = [['all', 'Toutes'], ['set', 'En set scellé'], ['indiv', 'Scellées seules'], ['libre', 'Libres']];
+const figN = (f, k) => k === 'all' ? f.n : f.k[k];
 function figTile(f){
   const v = unlocked() ? figValue(f.id) : null;
   return `<div class="sq info" role="button" tabindex="0" data-act="open-fig" data-id="${esc(f.id)}" style="padding:8px" title="${esc(f.name)}"><div class="ph2">${figImg(f.id)}</div>
-    ${f.n > 1 ? `<span class="qb" style="bottom:auto;top:6px;right:6px">×${f.n}</span>` : ''}${v ? `<span class="chip good" style="position:absolute;top:6px;left:6px">${eur(v)}</span>` : ''}
+    ${f.n > 1 ? `<span class="qb" style="bottom:auto;top:6px;right:6px">×${f.n}</span>` : ''}${v ? `<span class="chip good" style="position:absolute;top:6px;left:6px">${eur(v)}</span>` : ''}${f.k && f.k.indiv ? `<span class="chip yellow" style="position:absolute;top:${v ? 34 : 6}px;left:6px" title="Scellée individuellement">📦 indiv.</span>` : f.k && f.k.libre && !f.k.set ? `<span class="chip" style="position:absolute;top:${v ? 34 : 6}px;left:6px">libre</span>` : ''}
     <div class="sb" style="color:var(--ink);font-weight:800;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(f.name)}</div><div class="tiny muted b">${esc(f.id)}</div></div>`;
 }
 function figsHtml(){
   const all = allFigs();
   if (!all) return `<div class="spread on-blue"><h1>Figurines</h1></div><div class="card"><div class="empty">Chargement des figurines…</div></div>`;
   const q = fold(state.figQ || '');
-  let list = q ? all.filter(f => fold(f.name).includes(q) || fold(f.id).includes(q) || f.rows.some(x => fold(x.s.serie).includes(q) || x.s.ref.includes(q))) : all.slice();
+  const kind = FIG_KINDS.some(([k]) => k === state.figKind) ? state.figKind : 'all';
+  let list = (q ? all.filter(f => fold(f.name).includes(q) || fold(f.id).includes(q) || f.rows.some(x => fold(x.s.serie).includes(q) || x.s.ref.includes(q))) : all.slice()).filter(f => figN(f, kind) > 0);
   const by = { nom: (a, b) => a.name.localeCompare(b.name, 'fr'), nombre: (a, b) => b.n - a.n || a.name.localeCompare(b.name, 'fr'), valeur: (a, b) => (figValue(b.id) || 0) - (figValue(a.id) || 0), theme: (a, b) => String(a.rows[0].s.serie).localeCompare(String(b.rows[0].s.serie), 'fr') || a.id.localeCompare(b.id, 'fr', { numeric: true }) };
   const sort = by[state.figSort] ? state.figSort : 'theme'; list.sort(by[sort]);
-  const total = all.reduce((t, f) => t + f.n, 0), priced = all.filter(f => figValue(f.id));
-  const val = priced.reduce((t, f) => t + figValue(f.id) * f.n, 0);
-  return `<div class="spread on-blue"><h1>Figurines</h1><span class="small b">${all.length} différentes · ${total} au total</span></div>
-    ${unlocked() ? `<div class="small on-blue b" style="opacity:.95">Valeur estimée si vendues séparément : ${priced.length ? eur(val) + ` (${priced.length} figurines estimées sur ${all.length})` : 'aucune figurine estimée pour l’instant'}</div>` : ''}
+  const inK = all.filter(f => figN(f, kind) > 0), total = inK.reduce((t, f) => t + figN(f, kind), 0), priced = inK.filter(f => figValue(f.id));
+  const val = priced.reduce((t, f) => t + figValue(f.id) * figN(f, kind), 0);
+  const cnt = k => all.reduce((t, f) => t + figN(f, k), 0);
+  return `<div class="spread on-blue"><h1>Figurines</h1><span class="small b">${inK.length} différentes · ${total} au total</span></div>
+    <nav class="subtabs" aria-label="Conditionnement">${FIG_KINDS.filter(([k]) => k === 'all' || cnt(k) > 0).map(([k, l]) => `<a href="#" data-act="fig-kind" data-k="${k}" class="${k === kind ? 'on' : ''}">${l} · ${cnt(k)}</a>`).join('')}</nav>
+    ${unlocked() ? `<div class="small on-blue b" style="opacity:.95">Valeur estimée si vendues séparément : ${priced.length ? eur(val) + ` (${priced.length} figurines estimées sur ${inK.length})` : 'aucune figurine estimée pour l’instant'}</div>` : ''}
     <div class="row nowrap"><input type="search" id="fig-q" placeholder="Nom, réf., thème…" value="${esc(state.figQ || '')}" style="flex:1;min-width:0;border:0"><select id="fig-sort" style="width:auto;border:0">${[['theme', 'Par thème'], ['nom', 'Par nom'], ['nombre', 'Les plus fréquentes']].concat(unlocked() ? [['valeur', 'Les plus chères']] : []).map(([k, l]) => `<option value="${k}" ${sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
     <section class="card col fill">${list.length ? gridBox('figs', list.map(figTile).join('')) : `<div class="empty fill">${all.length ? 'Aucune figurine ne correspond.' : 'La liste des figurines de tes sets est en cours de préparation.'}</div>`}</section>`;
 }
@@ -1516,7 +1524,7 @@ function openFig(id){
   const p = figPrice(id);
   const sets = []; f.rows.forEach(x => { if (!sets.find(y => y.s.ref === x.s.ref)) sets.push(x); });
   openPanel(f.name, `<div style="height:200px;flex:none;display:flex">${figImg(id, 'xl')}</div>
-    <dl class="kv"><dt>Référence</dt><dd>${esc(id)}</dd><dt>Exemplaires</dt><dd>${f.n} dans ta collection</dd><dt>Thème</dt><dd>${themeLink(f.rows[0].s.serie)}</dd></dl>
+    <dl class="kv"><dt>Référence</dt><dd>${esc(id)}</dd><dt>Exemplaires</dt><dd>${f.n} dans ta collection</dd><dt>Conditionnement</dt><dd>${[f.k.set ? f.k.set + ' dans un set scellé' : '', f.k.indiv ? f.k.indiv + ' scellée' + (f.k.indiv > 1 ? 's' : '') + ' individuellement' : '', f.k.libre ? f.k.libre + ' libre' + (f.k.libre > 1 ? 's' : '') + ' (set monté)' : ''].filter(Boolean).join(' · ')}</dd><dt>Thème</dt><dd>${themeLink(f.rows[0].s.serie)}</dd></dl>
     ${unlocked() ? `<div class="box"><div class="spread"><h3>Valeur</h3><span class="small muted b">${p ? esc(p.source || '') + ' · ' + dmy(p.date) : 'non estimée'}</span></div>
       ${p && p.used ? `<div class="small muted b">Occasion : ${eur(p.used, 1)}</div>` : ''}
       <div class="bg" style="font-family:var(--display);font-weight:700;font-size:1.5rem;color:var(--blue-ink)">${p ? eur(num(p.value), 1) : '—'}${p && f.n > 1 ? ` <span class="small muted">× ${f.n} = ${eur(num(p.value) * f.n)}</span>` : ''}</div>
@@ -2265,6 +2273,7 @@ document.addEventListener('click', async ev => {
 
 
   /* scanner */
+  if (act === 'fig-kind') { state.figKind = el.dataset.k; state.scroll.figs = 0; return render(); }
   if (act === 'scan-close') return closeScanner();
   if (act === 'ean-scan') { const p = el.dataset.p; openScanner('Code-barres du set', (code, fmt) => { if (fmt === 'ref' || !isProductCode(code, fmt)) { beep(false); scanMsg('<b>Ce n’est pas un code-barres de boîte.</b>'); return; } beep(true); closeScanner(); const i = document.getElementById(p + 'ean'); if (i) { i.value = code; i.focus(); } }); return; }
   if (act === 'scan-photo') { const f = $('#scan-file'); if (f) f.click(); return; }
