@@ -6,7 +6,7 @@
 (function(){
   'use strict';
   // Identifiant OAuth « Application Web » créé dans Google Cloud (origine autorisée : l'adresse GitHub Pages).
-  const DEFAULT_CLIENT_ID = '';
+  const DEFAULT_CLIENT_ID = '274649465196-rlum0ihiqeogtlbvt74dr8k2tqkpo3se.apps.googleusercontent.com';
   const SCOPE = 'https://www.googleapis.com/auth/drive';
   const TOKEN_KEY = 'lego-sa-token', CID_KEY = 'lego-sa-client-id';
   const API = 'https://www.googleapis.com/drive/v3', UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
