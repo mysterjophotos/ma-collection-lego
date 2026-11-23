@@ -398,7 +398,8 @@ body.is-splash main{padding:0}
 .tc:hover{box-shadow:0 6px 18px rgba(16,24,40,.14)}
 .tc:active{transform:scale(.98)}
 .tc .tb{position:relative;aspect-ratio:1/1;border-radius:12px;overflow:hidden;background:var(--tcol)}
-.tc .tb .tn{position:absolute;top:9px;left:10px;right:10px;font-family:var(--display);font-weight:800;font-size:1rem;line-height:1.1;color:var(--tfg);letter-spacing:.01em;text-transform:uppercase}
+.tc .tb .tn{position:absolute;top:11px;left:12px;right:12px;font-family:var(--display);font-weight:800;font-size:1.25rem;line-height:1.05;color:var(--tfg);letter-spacing:.02em;text-transform:uppercase;overflow-wrap:anywhere;z-index:1}
+.tc .tb .ti{position:absolute;right:-8%;bottom:-8%;width:72%;height:72%;color:var(--tfg);opacity:.9}
 .tc .tb .thumb{position:absolute;right:-4%;bottom:-3%;width:74%;height:68%;background:transparent;border:0;padding:0;border-radius:0;align-items:flex-end;justify-content:flex-end}
 .tc .tb .thumb img{width:auto;height:auto;max-width:100%;max-height:100%;border-radius:4px;box-shadow:-6px 8px 18px rgba(0,0,0,.28);transform:rotate(-4deg)}
 .tc .lbl{padding:8px 6px 2px;font-weight:800;font-size:.92rem;line-height:1.2;overflow-wrap:anywhere}
@@ -852,9 +853,31 @@ const pieceOfRef = ref => num((cat(ref) || {}).pieces);
 function themeHeroRef(serie, rows){ const r = (rows || state.calc.ownedRows).filter(x => x.s.serie === serie).sort((a, b) => pieceOfRef(b.s.ref) - pieceOfRef(a.s.ref))[0]; return r ? r.s.ref : ''; }
 const IC_PCS = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="9" width="18" height="11" rx="2"/><rect x="6" y="5" width="4" height="4" rx="1"/><rect x="14" y="5" width="4" height="4" rx="1"/></svg>';
 const IC_FIG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="3" width="10" height="8" rx="2"/><path d="M5 21v-6a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v6"/></svg>';
+
+// Pictogrammes génériques par univers (dessins simples, aucun logo de marque).
+const TI = {
+  ship: '<path d="M12 2l3 7 6 3-6 3-3 7-3-7-6-3 6-3z"/><circle cx="12" cy="12" r="1.6"/>',
+  castle: '<path d="M3 21V9h3V6h2v3h3V5h2v4h3V6h2v3h3v12z"/><path d="M10 21v-4a2 2 0 0 1 4 0v4"/><path d="M12 2v3"/>',
+  car: '<path d="M3 15l2-5a2 2 0 0 1 2-1h10a2 2 0 0 1 2 1l2 5v3H3z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/><path d="M6 10h12"/>',
+  building: '<path d="M4 21V7l5-3v17M9 21V9h11v12"/><path d="M12 12h2M16 12h2M12 15h2M16 15h2M12 18h2M16 18h2M6 9h1M6 12h1M6 15h1"/>',
+  flower: '<circle cx="12" cy="9" r="2.2"/><path d="M12 6.8C12 4 10 3 9 3s-2 2 0 4M14.2 9c2.8 0 3.8-2 3.8-3s-2-2-4 0M12 11.2c0 2.8 2 3.8 3 3.8s2-2 0-4M9.8 9C7 9 6 11 6 12s2 2 4 0"/><path d="M12 11v10M12 17c-2-2-4-2-5-1M12 19c2-2 4-2 5-1"/>',
+  shield: '<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  wand: '<path d="M4 20L16 8"/><path d="M15 3v2M19 5l-1.5 1.5M21 9h-2M15 9l2 2"/><path d="M6 18l2 2"/>',
+  sword: '<path d="M14 4h6v6L9 21l-3-3z"/><path d="M5 14l5 5M3 21l3-3"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>',
+  gift: '<rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M3 12h18M12 8v13M12 8c-2-4-6-4-6-1s4 1 6 1c2 0 6 2 6-1s-4-3-6 1"/>',
+  fig: '<rect x="8" y="2.5" width="8" height="6.5" rx="2"/><path d="M6 21v-6.5A3.5 3.5 0 0 1 9.5 11h5a3.5 3.5 0 0 1 3.5 3.5V21M9 21v-5M15 21v-5"/>',
+  dino: '<path d="M3 18c3 0 4-3 6-3h5c2 0 3-2 3-4V7l3-2 1 3-2 1v3c0 4-3 7-7 7H9"/><path d="M8 18v3M13 18v3"/>',
+  mountain: '<path d="M2 20l7-12 4 6 3-4 6 10z"/><path d="M7.5 11l1.5 1.5L11 11"/>',
+  brick: '<rect x="3" y="9" width="18" height="11" rx="1.5"/><rect x="6" y="5" width="4" height="4" rx="1"/><rect x="14" y="5" width="4" height="4" rx="1"/>'
+};
+const THEME_ICO = [[/star wars|space|galax/, 'ship'], [/harry potter|wizarding|wicked/, 'wand'], [/castle|chateau|knight|seigneur|lord of the rings|hobbit|zelda/, 'sword'],
+  [/batman|marvel|dc|super ?heroes|spider/, 'shield'], [/speed|technic|car|formula|f1|voiture/, 'car'], [/icons|modular|creator expert|architecture|city|ideas|art\b/, 'building'],
+  [/botanic|fleur|flower/, 'flower'], [/jurassic|dino/, 'dino'], [/gwp|promo|cadeau/, 'gift'], [/minifig|figurine/, 'fig'], [/mindstorms|robot|gear/, 'gear'], [/avatar|minecraft|montagne/, 'mountain']];
+function themeIcon(name){ const f = fold(name || ''); const k = (THEME_ICO.find(([re]) => re.test(f)) || [0, 'brick'])[1]; return `<svg class="ti" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${TI[k]}</svg>`; }
 function themeCard(g, rows){
   const ref = themeHeroRef(g.key, rows), pcs = rows.filter(x => x.s.serie === g.key).reduce((a, x) => a + pieceOfRef(x.s.ref), 0);
-  return `<a class="tc" href="${esc(colH({ serie: g.key }))}" style="${themeVars(g.key)}"><div class="tb"><span class="tn">${esc(g.key)}</span>${ref ? thumb(ref) : ''}</div>
+  return `<a class="tc" href="${esc(colH({ serie: g.key }))}" style="${themeVars(g.key)}"><div class="tb"><span class="tn">${esc(g.key)}</span>${themeIcon(g.key)}</div>
     <div class="lbl">${esc(g.key)}</div><div class="ct">${g.n} set${g.n > 1 ? 's' : ''}${pcs ? ' · ' + nf.format(pcs) + ' pcs' : ''}</div></a>`;
 }
 // Carte produit d'un set (grille) : photo, pièces et figurines, nom, prix.
